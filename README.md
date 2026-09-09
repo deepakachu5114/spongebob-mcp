@@ -40,7 +40,7 @@ Problems it directly addresses:
 ### 1. Install spongebob once
 
 ```bash
-git clone <spongebob-repo-url> ~/tools/spongebob
+git clone https://github.com/deepakachu5114/spongebob-mcp.git ~/tools/spongebob
 cd ~/tools/spongebob
 uv sync
 ```
