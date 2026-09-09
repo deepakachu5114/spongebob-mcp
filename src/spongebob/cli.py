@@ -33,7 +33,7 @@ def _render(args: argparse.Namespace) -> int:
         payload.meta.slug = store.safe_slug(args.slug)
 
     result = render_site(payload)
-    port = serve.running_port()
+    port = serve.ensure_running() if args.open else serve.running_port()
     url = serve.site_url(result.slug, port)
 
     for warning in result.warnings:
