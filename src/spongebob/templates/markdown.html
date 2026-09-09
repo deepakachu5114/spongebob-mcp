@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% from "partials/blocks.html" import blocks, section_header, extras %}
+
+{% block content %}
+{{ section_header(section, default_icons) }}
+<div class="sb-prose">{{ section.body | md }}</div>
+{{ blocks(section.blocks) }}
+{{ extras(section) }}
+{% endblock %}

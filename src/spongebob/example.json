@@ -1,0 +1,298 @@
+{
+  "version": 1,
+  "meta": {
+    "title": "Kuya",
+    "slug": "kuya",
+    "subtitle": "Distributed task orchestration for data teams",
+    "summary": "Kuya turns a Python function into a scheduled, retryable, observable task. This guide takes you from zero to shipping your first pipeline.",
+    "repository": "acme/kuya",
+    "repository_url": "https://github.com/acme/kuya",
+    "website_url": "https://kuya.example.dev",
+    "setup_file": "quickstart.py",
+    "setup_command": "uv run python quickstart.py",
+    "owner": "Platform Engineering",
+    "tags": ["orchestration", "python", "data-platform"],
+    "theme": { "accent": "#22d3ee", "dark_default": true }
+  },
+  "learning_path": [
+    { "title": "Overview",      "summary": "Why Kuya exists and where it sits in the stack.",    "target": "overview",     "est_minutes": 8  },
+    { "title": "Prerequisites", "summary": "Videos, blogs and courses to get your bearings.",    "target": "resources",    "est_minutes": 45 },
+    { "title": "First pipeline","summary": "Run quickstart.py and watch a task execute.",         "target": "first-task",   "est_minutes": 20 },
+    { "title": "How it works",  "summary": "Internals — scheduler, executors, and state.",       "target": "how-it-works", "est_minutes": 15 },
+    { "title": "Flashcards",    "summary": "Lock in the vocabulary with spaced repetition.",     "target": "flashcards",   "est_minutes": 10 },
+    { "title": "Knowledge check","summary": "Prove it to yourself.",                             "target": "quiz",         "est_minutes": 10 }
+  ],
+  "sections": [
+    {
+      "type": "overview",
+      "id": "overview",
+      "title": "Overview",
+      "subtitle": "What Kuya is, in business terms and in engineering terms",
+      "business_pov": "Data teams at Acme were losing **three engineer-days a week** to babysitting cron jobs that failed silently. Kuya replaces that with a declarative scheduler: you describe the work, Kuya guarantees it runs, retries on failure, and reports what happened.\n\nThe business outcome is boring and valuable — dashboards are correct by 6am, and nobody gets paged for a transient S3 timeout.",
+      "analogies": [
+        {
+          "title": "The restaurant ticket rail",
+          "body": "Imagine a busy kitchen. Orders come in and get clipped to a rail above the pass. Each station — grill, sauce, plating — only starts when the one before it hands the plate along. Nobody has to shout; the rail is the contract. In Kuya, your functions are the stations, and the rail is a **DAG (directed acyclic graph)** — a map of what has to finish before the next thing can start."
+        },
+        {
+          "title": "The persistent sous chef",
+          "body": "Now suppose the grill station has a bad night and burns a steak. A good sous chef doesn't abandon the order — they retry it, note what went wrong, and keep the kitchen running. Kuya's **scheduler** does exactly this: it holds **run history** in a database (PostgreSQL), re-attempts failures with a back-off, and surfaces the result in a dashboard so the head chef (you) can see every ticket that was ever fired."
+        },
+        {
+          "title": "Separating the menu from the kitchen",
+          "body": "The restaurant owner writes the menu (what dishes to make, in what order). The kitchen staff execute it. Kuya makes the same split: you write **task definitions** in Python, and a pool of **executors** (worker processes) runs them in parallel. Adding more executors is like hiring more line cooks — the menu stays the same, the throughput goes up."
+        }
+      ],
+      "tech_stack": [
+        { "name": "Python",          "category": "language",      "purpose": "Task definitions and the SDK",                        "version": "3.11+", "docs_url": "https://docs.python.org/3/" },
+        { "name": "PostgreSQL",      "category": "storage",       "purpose": "Durable run history and scheduler state",             "version": "15",    "docs_url": "https://www.postgresql.org/docs/" },
+        { "name": "Redis",           "category": "queue",         "purpose": "Work distribution to executors (ephemeral hand-off)", "version": "7",     "docs_url": "https://redis.io/docs/" },
+        { "name": "FastAPI",         "category": "api",           "purpose": "Control-plane REST API and web UI backend",                               "docs_url": "https://fastapi.tiangolo.com/" },
+        { "name": "OpenTelemetry",   "category": "observability", "purpose": "Traces and metrics for every task run",                                   "docs_url": "https://opentelemetry.io/docs/" }
+      ],
+      "notes": [
+        "Kuya is **not** a stream processor — if your latency budget is under a second, use the event bus instead.",
+        "The scheduler is single-writer by design; horizontal scale comes from executors, not from running two schedulers.",
+        "Losing Redis loses queued work but never run history — Postgres is the source of truth."
+      ],
+      "blocks": [
+        {
+          "type": "callout",
+          "variant": "info",
+          "title": "Where Kuya fits",
+          "text": "Kuya sits between your orchestration triggers (cron, CI, webhooks) and your compute. It does not transform data itself — it sequences and retries the functions that do."
+        },
+        {
+          "type": "kv",
+          "title": "At a glance",
+          "pairs": {
+            "First release": "2024-03",
+            "Language":       "Python 3.11+",
+            "Deployment":     "Helm chart or single container",
+            "License":        "Apache-2.0"
+          }
+        }
+      ]
+    },
+    {
+      "type": "resources",
+      "id": "resources",
+      "title": "Prerequisites",
+      "subtitle": "Watch, read, then build. Roughly 45 minutes of prep.",
+      "groups": [
+        {
+          "label": "Watch first",
+          "kind": "youtube",
+          "description": "Start here if you have never used a DAG-based scheduler.",
+          "items": [
+            { "title": "What is a DAG, really?",  "url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ", "description": "Twelve minutes on directed acyclic graphs with no maths.",            "author": "Acme Platform", "duration": "12:04", "level": "beginner" },
+            { "title": "Kuya in 10 minutes",      "url": "https://youtu.be/aqz-KE-bpKQ",               "description": "A live walkthrough of writing and scheduling your first task.",      "author": "Acme Platform", "duration": "10:31", "level": "beginner" }
+          ]
+        },
+        {
+          "label": "Read before you touch the scheduler",
+          "kind": "blog",
+          "items": [
+            { "title": "Why we replaced cron (internal)",          "url": "https://wiki.example.dev/platform/why-we-replaced-cron", "description": "The original design doc and the incident that prompted it.",          "source": "internal", "author": "R. Marks",  "level": "intermediate" },
+            { "title": "Idempotency for pipeline authors (internal)","url": "https://wiki.example.dev/platform/idempotency",         "description": "House rules for writing retry-safe tasks — read this before your first deploy.", "source": "internal",                    "level": "intermediate" },
+            { "title": "Designing data-intensive workflows",        "url": "https://martinfowler.com/articles/data-mesh-principles.html", "description": "External background on workflow boundaries; pairs well with the internal design doc.", "source": "external", "level": "advanced" }
+          ]
+        },
+        {
+          "label": "If you have never used PostgreSQL",
+          "kind": "course",
+          "items": [
+            { "title": "PostgreSQL for application developers", "url": "https://www.udemy.com/course/postgresql/", "description": "Useful if you will be debugging scheduler state directly.", "duration": "9h", "level": "intermediate" }
+          ]
+        },
+        {
+          "label": "Reference docs",
+          "kind": "docs",
+          "items": [
+            { "title": "Kuya SDK reference",      "url": "https://kuya.example.dev/docs/sdk",     "source": "internal", "description": "Full API reference for @task, @pipeline and the CLI." },
+            { "title": "Task retry semantics",    "url": "https://kuya.example.dev/docs/retries", "source": "internal", "description": "How back-off intervals, max attempts and jitter are calculated." }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "markdown",
+      "id": "first-task",
+      "title": "Your first pipeline",
+      "subtitle": "Fifteen minutes, one file, one scheduled task.",
+      "body": "## 1. Install dependencies\n\n```bash\nuv add kuya\n```\n\nThis pulls the Kuya SDK and its CLI into your virtual environment.\n\n## 2. Initialise a project\n\n```bash\nuv run kuya init\n```\n\nWrites a `kuya.toml` (scheduler config) and a `pipelines/` directory with a sample task.\n\n## 3. Write your first task\n\n```python\nfrom kuya import task, pipeline\n\n@task(retries=3, timeout=\"5m\")\ndef fetch_orders(day: str) -> str:\n    return f\"s3://raw/orders/{day}.parquet\"\n\n@task\ndef summarise(path: str) -> int:\n    return count_rows(path)\n\n@pipeline(schedule=\"0 5 * * *\")\ndef daily_orders(day: str):\n    return summarise(fetch_orders(day))\n```\n\nTwo things to notice: `retries` is declared on the task, not coded inside it. And `daily_orders` returns the *last* task — Kuya infers the DAG from the Python call graph.\n\n## 4. Run it locally\n\n```bash\nuv run python quickstart.py\n```\n\nYou should see two task records appear in the local scheduler UI at `http://localhost:8080`.\n\n## 5. Deploy to staging\n\n```bash\nuv run kuya deploy --env staging\n```\n\nDeployment is a no-op if the DAG hash is unchanged, so it is safe to run in CI on every merge."
+    },
+    {
+      "type": "markdown",
+      "id": "how-it-works",
+      "title": "How it works",
+      "subtitle": "Control plane, data plane, and how they talk to each other.",
+      "body": "",
+      "blocks": [
+        {
+          "type": "markdown",
+          "text": "From the outside, you write Python functions and decorate them. From the inside, there are two planes that never share code:\n\n- **Control plane** — decides *what* runs and *when*.\n- **Data plane** — decides *where* and actually executes your code."
+        },
+        {
+          "type": "table",
+          "title": "Component map",
+          "columns": ["Component", "Plane", "Scales by", "Stateful?"],
+          "rows": [
+            ["Scheduler", "Control", "Cannot — single writer by design", "Yes (advisory lock in Postgres)"],
+            ["API / UI",  "Control", "Replicas behind a load balancer",  "No"],
+            ["Executor",  "Data",    "Replicas, one worker per core",    "No"],
+            ["PostgreSQL","Control", "Vertically, then read replicas",   "Yes — run history lives here"],
+            ["Redis",     "Data",    "Cluster mode",                     "Ephemeral — only in-flight work"]
+          ]
+        },
+        {
+          "type": "callout",
+          "variant": "warn",
+          "title": "Upgrade order matters",
+          "text": "Migrate PostgreSQL first, then roll executors, then roll the scheduler. Rolling the scheduler first will enqueue work in a format old executors cannot read."
+        },
+        {
+          "type": "list",
+          "title": "Failure modes worth knowing",
+          "items": [
+            "An OOM-killed executor leaves its run row in RUNNING until the lease expires (10 minutes by default).",
+            "A PostgreSQL failover pauses scheduling but loses no run history.",
+            "Redis eviction drops queued work; the scheduler re-enqueues on the next tick."
+          ]
+        },
+        {
+          "type": "code",
+          "language": "yaml",
+          "title": "Minimal Helm values",
+          "text": "scheduler:\n  replicas: 1\nexecutor:\n  replicas: 6\n  resources:\n    limits:\n      memory: 4Gi\npostgres:\n  external: true\n  dsn: ${KUYA_DSN}"
+        }
+      ]
+    },
+    {
+      "type": "flashcards",
+      "id": "flashcards",
+      "title": "Flashcards",
+      "subtitle": "Spaced repetition. Grade honestly — the schedule only works if you do.",
+      "decks": [
+        {
+          "id": "core",
+          "name": "Core concepts",
+          "description": "The vocabulary you need before reading any Kuya pipeline.",
+          "tags": ["fundamentals"],
+          "cards": [
+            { "front": "What is a DAG?",                         "back": "A **directed acyclic graph** — tasks are nodes, dependencies are edges, and no path loops back on itself. Kuya infers it from your function call graph.",                                                    "hint": "Three words; one means 'no cycles'." },
+            { "front": "What does `@task(retries=3)` guarantee?","back": "Kuya will re-invoke the task up to three more times on failure, with exponential back-off. It does **not** guarantee the task is safe to re-run — that is your job.",                                   "hint": "The scheduler promises attempts, not correctness." },
+            { "front": "Why must tasks be idempotent?",          "back": "Because retries and backfills re-run the same task with the same inputs. If the task appends instead of overwriting, a retry silently doubles your data."                                                    },
+            { "front": "Where does scheduler state live?",       "back": "PostgreSQL. Redis only carries in-flight work hand-off to executors, so losing Redis costs you queued work but never run history.",                                                                          "hint": "Think: which store survives a Redis flush?" },
+            { "front": "What is a backfill?",                    "back": "Re-running a pipeline over a historical range of schedule intervals — typically after fixing a bug or adding a new task to an existing DAG.",                                                                "code": "kuya backfill daily_orders --from 2026-01-01 --to 2026-01-31", "code_language": "bash" }
+          ]
+        },
+        {
+          "id": "operations",
+          "name": "Operating Kuya",
+          "description": "What you need when something is on fire at 3am.",
+          "tags": ["on-call"],
+          "cards": [
+            { "front": "A task is stuck in RUNNING with no logs. First check?", "back": "Whether its executor pod still exists. An OOM-killed executor leaves the run row in RUNNING until the lease expires (default 10 minutes)." },
+            { "front": "How do you stop a runaway pipeline immediately?",        "back": "Pause the pipeline, then cancel in-flight runs. Pausing alone does not stop work already handed to an executor.", "code": "kuya pipeline pause daily_orders\nkuya run cancel --pipeline daily_orders --state running", "code_language": "bash" },
+            { "front": "Two schedulers are running. What happens?",              "back": "The second one fails to acquire the Postgres advisory lock and exits. The scheduler is single-writer by design — scale executors instead." }
+          ]
+        },
+        {
+          "id": "pitfalls",
+          "name": "Common pitfalls",
+          "description": "Mistakes that are easy to make and painful to debug.",
+          "tags": ["gotchas"],
+          "cards": [
+            { "front": "You added a new task to a running pipeline. What do you need to do?", "back": "Redeploy (`kuya deploy`). The DAG hash changes and the scheduler picks up the new shape on the next tick. In-flight runs of the old DAG shape will complete normally." },
+            { "front": "You upgraded the scheduler before migrating Postgres. What breaks?",  "back": "The scheduler writes new run rows in the upgraded schema; old-version executors cannot parse them and will crash or skip work. Always migrate Postgres first." }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "quiz",
+      "id": "quiz",
+      "title": "Knowledge check",
+      "subtitle": "Ten questions. You want eight.",
+      "quizzes": [
+        {
+          "id": "basics",
+          "name": "Kuya basics",
+          "description": "Covers the overview, your first pipeline, and how it works.",
+          "pass_score": 80,
+          "questions": [
+            {
+              "prompt": "How does Kuya determine the shape of a DAG?",
+              "kind": "mcq",
+              "choices": ["From a YAML file you maintain by hand", "By inferring it from the function call graph inside @pipeline", "By scanning the database for prior runs", "It asks the scheduler at runtime"],
+              "answer": 1,
+              "explanation": "The `@pipeline` function body is traced; calling `summarise(fetch_orders(day))` is what creates the edge between those two tasks."
+            },
+            {
+              "prompt": "Which of these are stored in PostgreSQL rather than Redis?",
+              "kind": "multi",
+              "choices": ["Run history", "Scheduler state", "In-flight work hand-off to executors", "Task retry counts"],
+              "answer": [0, 1, 3],
+              "explanation": "Redis carries only the ephemeral hand-off to executors. Everything durable — run history, scheduler state, retry counts — lives in Postgres."
+            },
+            {
+              "prompt": "Declaring `retries=3` makes a task safe to re-run.",
+              "kind": "true_false",
+              "answer": false,
+              "explanation": "It makes the task *retried* up to three times; it does nothing to make the task *idempotent*. Retry-safety is a property of your code, not of the decorator."
+            },
+            {
+              "prompt": "Running two scheduler instances doubles throughput.",
+              "kind": "true_false",
+              "answer": false,
+              "explanation": "The second scheduler cannot acquire the Postgres advisory lock and exits immediately. Scale executors instead of schedulers."
+            },
+            {
+              "prompt": "A task is stuck in RUNNING with no logs. What is the most likely cause?",
+              "kind": "mcq",
+              "choices": ["A network partition between scheduler and Postgres", "The executor pod was OOM-killed and the lease has not yet expired", "Redis was flushed", "The task declared retries=0"],
+              "answer": 1,
+              "explanation": "An OOM-killed executor leaves the run row in RUNNING until the lease expires (10 minutes by default). Check whether the pod still exists first."
+            },
+            {
+              "prompt": "Which component is intentionally limited to a single running instance?",
+              "kind": "mcq",
+              "choices": ["The REST API", "The executor", "The scheduler", "PostgreSQL"],
+              "answer": 2,
+              "explanation": "The scheduler is single-writer by design; it holds a Postgres advisory lock. The API and executors can all be replicated freely."
+            },
+            {
+              "prompt": "What is lost if Redis goes down completely?",
+              "kind": "mcq",
+              "choices": ["All run history", "Scheduler state and run history", "Only work that was queued but not yet picked up by an executor", "Nothing — Kuya falls back to Postgres for the queue"],
+              "answer": 2,
+              "explanation": "Redis holds only in-flight work hand-off. The scheduler re-enqueues any lost work on its next tick. Postgres remains the source of truth."
+            },
+            {
+              "prompt": "When you add a new task to an existing pipeline, which of these steps are required before it runs in production?",
+              "kind": "multi",
+              "choices": ["Redeploy with `kuya deploy`", "Restart the executor pods manually", "Run a backfill if you need historical data", "Pause and resume the pipeline"],
+              "answer": [0, 2],
+              "explanation": "`kuya deploy` is required — it pushes the new DAG hash to the scheduler. A backfill is needed only if you want the new task to run over past dates. Executor pods and pause/resume are not required."
+            },
+            {
+              "prompt": "In the correct upgrade sequence, what comes first?",
+              "kind": "mcq",
+              "choices": ["Roll the scheduler", "Roll the executors", "Migrate PostgreSQL", "Flush Redis"],
+              "answer": 2,
+              "explanation": "Migrate Postgres first, then roll executors, then roll the scheduler. Rolling the scheduler first enqueues work in a format old executors cannot read."
+            },
+            {
+              "prompt": "`kuya deploy` is safe to run on every CI merge even if nothing changed.",
+              "kind": "true_false",
+              "answer": true,
+              "explanation": "Deployment is a no-op when the DAG hash is unchanged, so running it on every merge is intentional and safe."
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "footer_note": "Generated from the acme/kuya repository and its internal docs."
+}

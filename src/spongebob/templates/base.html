@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en" class="{% if theme.dark_default %}dark{% endif %}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ page_title }}</title>
+{% if meta.summary %}<meta name="description" content="{{ meta.summary }}">{% endif %}
+<meta name="generator" content="spongebob {{ generator_version }}">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+<style type="text/tailwindcss">
+  @custom-variant dark (&:where(.dark, .dark *));
+  @theme {
+    --font-sans: 'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif;
+    --font-mono: 'IBM Plex Mono', 'Menlo', 'Courier New', monospace;
+  }
+</style>
+<link rel="stylesheet" href="{{ assets }}/pygments.css">
+<link rel="stylesheet" href="{{ assets }}/spongebob.css">
+<style>
+  :root {
+    --sb-accent: {{ theme.accent }};
+    --sb-accent-soft: {{ theme.accent_soft or theme.accent }};
+  }
+</style>
+<script>
+  /* Applied before first paint so the theme never flashes. */
+  (function () {
+    try {
+      var stored = localStorage.getItem('spongebob:theme');
+      if (stored === 'light') document.documentElement.classList.remove('dark');
+      if (stored === 'dark') document.documentElement.classList.add('dark');
+    } catch (e) {}
+  })();
+</script>
+</head>
+<body class="min-h-screen antialiased font-sans"
+      style="background: var(--sb-bg); color: var(--sb-text);"
+      data-site="{{ meta.slug }}">
+
+{% include "partials/nav.html" %}
+
+<main>
+  {% block content %}{% endblock %}
+</main>
+
+{% include "partials/footer.html" %}
+
+<script src="{{ assets }}/app.js"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

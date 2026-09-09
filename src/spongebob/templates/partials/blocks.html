@@ -1,0 +1,135 @@
+{% from "partials/icons.html" import icon %}
+{% from "partials/resource_card.html" import resource %}
+
+{#- Renders the freeform Block model. Any block type we do not recognise falls
+    through to its markdown text plus a key/value dump of whatever else the
+    agent attached, so no content is ever silently lost. -#}
+{% macro block(b) %}
+{% set t = b.type %}
+
+{% if t == 'heading' %}
+  {% set level = b.level if b.level in [2, 3, 4] else 2 %}
+  {% if level == 2 %}<h2 class="sb-h2">{{ b.text or b.title }}</h2>
+  {% elif level == 3 %}<h3 class="sb-h3">{{ b.text or b.title }}</h3>
+  {% else %}<h4 class="sb-h4">{{ b.text or b.title }}</h4>{% endif %}
+
+{% elif t == 'callout' %}
+  <aside class="sb-callout sb-callout--{{ b.variant or 'info' }}">
+    {% if b.title %}<p class="sb-callout-title">{{ b.title }}</p>{% endif %}
+    <div class="sb-prose">{{ b.text | md }}</div>
+  </aside>
+
+{% elif t == 'list' %}
+  <div class="sb-card p-5">
+    {% if b.title %}<h3 class="sb-h4 !mt-0">{{ b.title }}</h3>{% endif %}
+    <ul class="sb-bullets">
+      {% for item in b.items %}<li>{{ item | md_inline }}</li>{% endfor %}
+    </ul>
+  </div>
+
+{% elif t == 'table' %}
+  <div class="sb-card overflow-hidden">
+    {% if b.title %}<h3 class="sb-h4 !mt-0 px-5 pt-5">{{ b.title }}</h3>{% endif %}
+    <div class="overflow-x-auto">
+      <table class="sb-table">
+        {% if b.columns %}
+        <thead><tr>{% for col in b.columns %}<th>{{ col }}</th>{% endfor %}</tr></thead>
+        {% endif %}
+        <tbody>
+          {% for row in b.rows %}<tr>{% for cell in row %}<td>{{ cell | md_inline }}</td>{% endfor %}</tr>{% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+{% elif t == 'code' %}
+  <div class="sb-card overflow-hidden">
+    <div class="sb-code-head">
+      <span>{{ b.title or b.language or 'code' }}</span>
+      <button type="button" class="sb-copy" data-copy>Copy</button>
+    </div>
+    <div class="sb-code-wrap">{{ b.text | code(b.language) }}</div>
+  </div>
+
+{% elif t == 'kv' %}
+  <div class="sb-card p-5">
+    {% if b.title %}<h3 class="sb-h4 !mt-0">{{ b.title }}</h3>{% endif %}
+    <dl class="sb-kv">
+      {% for key, value in b.pairs.items() %}
+      <div><dt>{{ key }}</dt><dd>{{ value | md_inline }}</dd></div>
+      {% endfor %}
+    </dl>
+  </div>
+
+{% elif t == 'link_grid' %}
+  <div>
+    {% if b.title %}<h3 class="sb-h4">{{ b.title }}</h3>{% endif %}
+    <div class="grid gap-3 sm:grid-cols-2">
+      {% for item in b.links %}{{ resource(item) }}{% endfor %}
+    </div>
+  </div>
+
+{% elif t == 'image' and b.url %}
+  <figure class="sb-card overflow-hidden">
+    <img src="{{ b.url }}" alt="{{ b.alt or b.title or '' }}" loading="lazy" class="w-full">
+    {% if b.title %}<figcaption class="px-4 py-3 text-sm text-slate-500 dark:text-slate-400">{{ b.title }}</figcaption>{% endif %}
+  </figure>
+
+{% elif t == 'embed' and b.url %}
+  {% set vid = b.url | youtube_id %}
+  {% if vid %}
+  <div class="sb-card overflow-hidden">
+    <div class="sb-embed">
+      <iframe src="https://www.youtube-nocookie.com/embed/{{ vid }}" title="{{ b.title or 'Embedded video' }}"
+              loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+    </div>
+  </div>
+  {% else %}
+  <p><a href="{{ b.url }}" target="_blank" rel="noopener" class="sb-link">{{ b.title or b.url }}</a></p>
+  {% endif %}
+
+{% else %}
+  {# markdown, and the fallback for any unrecognised block type #}
+  <div>
+    {% if b.title %}<h3 class="sb-h4">{{ b.title }}</h3>{% endif %}
+    {% if b.text %}<div class="sb-prose">{{ b.text | md }}</div>{% endif %}
+    {% if b.items %}<ul class="sb-bullets">{% for item in b.items %}<li>{{ item | md_inline }}</li>{% endfor %}</ul>{% endif %}
+    {{ extras(b) }}
+  </div>
+{% endif %}
+{% endmacro %}
+
+{#- Unknown keys the agent attached, shown rather than dropped. -#}
+{% macro extras(obj) %}
+{% set data = obj.extras() %}
+{% if data %}
+<dl class="sb-kv mt-3">
+  {% for key, value in data.items() %}
+  <div><dt>{{ key.replace('_', ' ') }}</dt><dd>{{ value if value is string else value | tojson_safe }}</dd></div>
+  {% endfor %}
+</dl>
+{% endif %}
+{% endmacro %}
+
+{% macro blocks(items) %}
+{% if items %}
+<div class="mt-8 space-y-6">
+  {% for b in items %}{{ block(b) }}{% endfor %}
+</div>
+{% endif %}
+{% endmacro %}
+
+{#- Standard page header used by every section page. -#}
+{% macro section_header(section, default_icons) %}
+<header class="mb-8">
+  <div class="flex items-center gap-2.5 text-xs font-semibold uppercase tracking-[0.14em]"
+       style="color: var(--sb-accent);">
+    <span class="sb-kind-chip">{{ icon(section.icon or default_icons.get(section.type, 'layers'), "w-4 h-4") }}</span>
+    {{ section.type }}
+  </div>
+  <h1 class="mt-3 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl dark:text-white">{{ section.title }}</h1>
+  {% if section.subtitle %}
+  <p class="mt-3 max-w-2xl text-[1.05rem] leading-relaxed text-slate-600 dark:text-slate-400">{{ section.subtitle }}</p>
+  {% endif %}
+</header>
+{% endmacro %}

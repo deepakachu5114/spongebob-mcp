@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% from "partials/icons.html" import icon %}
+{% from "partials/blocks.html" import blocks, section_header, extras %}
+
+{% block content %}
+{{ section_header(section, default_icons) }}
+
+{% if section.business_pov %}
+<section class="sb-section !mt-0">
+  <h2 class="sb-h2 !mt-0">Why this exists</h2>
+  <div class="sb-prose mt-4">{{ section.business_pov | md }}</div>
+</section>
+{% endif %}
+
+{% if section.analogies %}
+<section class="sb-section">
+  <h2 class="sb-h2">Analogies &amp; examples</h2>
+  <div class="mt-6 grid gap-3 sm:grid-cols-2">
+    {% for a in section.analogies %}
+    <article class="sb-card p-5">
+      <h3 class="flex items-center gap-2 font-semibold text-slate-900 dark:text-white">
+        <span class="sb-dot"></span>{{ a.title }}
+      </h3>
+      <div class="sb-prose sb-prose--tight mt-2.5">{{ a.body | md }}</div>
+    </article>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+{% if section.tech_stack %}
+<section class="sb-section">
+  <h2 class="sb-h2">Tech stack</h2>
+  <div class="sb-card mt-6 overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="sb-table">
+        <thead><tr><th>Component</th><th>Role</th><th>Why it is here</th><th></th></tr></thead>
+        <tbody>
+          {% for t in section.tech_stack %}
+          <tr>
+            <td class="whitespace-nowrap font-medium text-slate-900 dark:text-white">
+              {{ t.name }}{% if t.version %} <span class="font-mono text-xs text-slate-400">{{ t.version }}</span>{% endif %}
+            </td>
+            <td class="whitespace-nowrap">{% if t.category %}<span class="sb-tag">{{ t.category }}</span>{% endif %}</td>
+            <td>{{ t.purpose or '' }}</td>
+            <td class="whitespace-nowrap">
+              {% if t.docs_url %}<a href="{{ t.docs_url }}" target="_blank" rel="noopener" class="sb-link">docs</a>{% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+{% endif %}
+
+{% if section.notes %}
+<section class="sb-section">
+  <h2 class="sb-h2">Worth knowing</h2>
+  <ul class="sb-bullets mt-4">
+    {% for note in section.notes %}<li>{{ note | md_inline }}</li>{% endfor %}
+  </ul>
+</section>
+{% endif %}
+
+{{ blocks(section.blocks) }}
+{{ extras(section) }}
+{% endblock %}

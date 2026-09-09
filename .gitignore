@@ -1,0 +1,57 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+*.whl
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# uv
+.uv/
+
+# Distribution / packaging
+*.dist-info/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# Type checking
+.mypy_cache/
+.dmypy.json
+.pytype/
+
+# IDEs and editors
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Bob runtime state (not config — config lives in .bob/)
+.bob/db/
+
+# spongebob rendered sites (stored outside repo by default, but guard against
+# someone setting SPONGEBOB_DATA_DIR to a path inside the repo)
+sites/
+
+# Environment files — never commit secrets
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log

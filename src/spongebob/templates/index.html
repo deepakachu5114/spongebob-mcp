@@ -1,0 +1,681 @@
+{% extends "base.html" %}
+{% from "partials/icons.html" import icon %}
+{% from "partials/learning_path.html" import learning_path %}
+{% from "partials/blocks.html" import blocks, section_header, block %}
+{% from "partials/resource_card.html" import resource, kind_icon %}
+
+{% block content %}
+
+{# ─────────────────────────── HERO ─────────────────────────────────────── #}
+<section class="sb-hero" id="top">
+  <div class="sb-hero-grid" aria-hidden="true"></div>
+
+  <div class="sb-hero-content">
+    <div class="sb-hero-kicker">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3z"/></svg>
+      Learning workspace
+    </div>
+
+    {% if meta.repository %}
+    <p style="font-family: var(--sb-font-mono); font-size: 0.75rem; color: #8d8d8d; margin: 0 0 0.75rem; letter-spacing: 0.04em;">{{ meta.repository }}</p>
+    {% endif %}
+
+    <h1>{{ meta.title }}</h1>
+
+    {% if meta.subtitle %}
+    <p class="sb-hero-lede" style="color: #78a9ff; font-size: 1rem; margin-top: 0.75rem; margin-bottom: 1rem;">{{ meta.subtitle }}</p>
+    {% endif %}
+
+    {% if meta.summary %}
+    <p class="sb-hero-lede">{{ meta.summary }}</p>
+    {% endif %}
+
+    <div class="sb-hero-meta">
+      {% if meta.website_url %}
+      <a href="{{ meta.website_url }}" target="_blank" rel="noopener">
+        {{ icon("link", "w-3.5 h-3.5") }} Website
+      </a>
+      {% endif %}
+      {% if meta.repository_url %}
+      <a href="{{ meta.repository_url }}" target="_blank" rel="noopener">
+        {{ icon("layers", "w-3.5 h-3.5") }} Repository
+      </a>
+      {% endif %}
+      {% if steps %}
+      <a href="#learning-path">
+        {{ icon("flag", "w-3.5 h-3.5") }} Start here
+      </a>
+      {% endif %}
+    </div>
+
+    {% if meta.tags %}
+    <div style="margin-top: 1.25rem; display: flex; flex-wrap: wrap; gap: 0.4rem;">
+      {% for tag in meta.tags %}<span class="sb-tag">{{ tag }}</span>{% endfor %}
+    </div>
+    {% endif %}
+
+    {% if meta.setup_file or meta.setup_command %}
+    <div class="sb-card" style="margin-top: 1.5rem; overflow: hidden; max-width: 44rem;">
+      <div class="sb-code-head">
+        <span>Setup{% if meta.setup_file %} · {{ meta.setup_file }}{% endif %}</span>
+        {% if meta.setup_command %}<button type="button" class="sb-copy" data-copy>Copy</button>{% endif %}
+      </div>
+      <div class="sb-code-wrap">
+        {{ (meta.setup_command or ('python ' ~ meta.setup_file)) | code('bash') }}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  {# decorative aside — mirrors ibm_type_implementation signal cards #}
+  <div class="sb-hero-aside" aria-hidden="true">
+    {% set fc_section = sections | selectattr("type", "equalto", "flashcards") | first %}
+    {% set rs_section = sections | selectattr("type", "equalto", "resources") | first %}
+    {% set ov_section = sections | selectattr("type", "equalto", "overview") | first %}
+
+    <div class="sb-signal-card sb-signal-card--one">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M12 21a9 9 0 100-18 9 9 0 000 18zm3.5-12.5l-2 5-5 2 2-5 5-2z"/></svg>
+      <span>Overview</span>
+      <strong>{% if ov_section %}{{ ov_section.title }}{% else %}Architecture{% endif %}</strong>
+    </div>
+
+    <div class="sb-signal-line"></div>
+
+    <div class="sb-signal-card sb-signal-card--two">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M8 7h9a2 2 0 012 2v9a2 2 0 01-2 2H8a2 2 0 01-2-2V9a2 2 0 012-2zM6 4h9"/></svg>
+      <span>Study</span>
+      <strong>{% if fc_section and fc_section.decks %}{{ fc_section.decks | map(attribute="cards") | map("length") | sum }}{% else %}0{% endif %} cards</strong>
+    </div>
+
+    <div class="sb-signal-line sb-signal-line--two"></div>
+
+    <div class="sb-signal-card sb-signal-card--three">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M9 4l6 2 6-2v14l-6 2-6-2-6 2V6l6-2zm0 0v14m6-12v14"/></svg>
+      <span>Roadmap</span>
+      <strong>{{ steps | length }} step{{ 's' if steps | length != 1 else '' }}</strong>
+    </div>
+  </div>
+</section>
+
+{# ────────────────────────── WORKSPACE ─────────────────────────────────── #}
+<div class="sb-workspace">
+
+  {# ── Plan intro ── #}
+  {% if steps or meta.summary %}
+  <div class="sb-section-intro" id="learning-path">
+    <div>
+      <p class="sb-eyebrow">Your workspace</p>
+      <h2 class="sb-section-title">{{ meta.title }}</h2>
+      {% if meta.summary %}
+      <p class="sb-section-desc">{{ meta.summary }}</p>
+      {% endif %}
+    </div>
+    {% if meta.repository_url %}
+    <a href="{{ meta.repository_url }}" target="_blank" rel="noopener"
+       style="display: inline-flex; align-items: center; gap: 0.5rem; color: var(--sb-accent);
+              font-size: 0.875rem; text-decoration: none; padding: 0.5rem 0;">
+      {{ icon("layers", "w-4 h-4") }} View source
+    </a>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {# ── Learning path serpentine ── #}
+  {% if steps %}
+  <div style="margin-bottom: 3rem;">
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem;">
+      <p class="sb-eyebrow" style="margin: 0;">Suggested path</p>
+      <span class="sb-count-label">{{ steps | length }} step{{ 's' if steps | length != 1 else '' }}{% if total_minutes %} · ~{{ total_minutes }} min{% endif %}</span>
+    </div>
+    {{ learning_path(steps) }}
+  </div>
+  {% endif %}
+
+  {# ──────────────────────────────────────────────────────────────────────────
+     Sections rendered in PAYLOAD ORDER so the flow defined in the learning
+     path is respected exactly:
+       overview → resources → first-task (markdown) → how-it-works (markdown)
+       → flashcards → quiz → custom (danger warnings only)
+  ────────────────────────────────────────────────────────────────────────── #}
+
+  {# The overview section gets the two-column workspace grid treatment.
+     All other section types render as full-width panels below it.          #}
+  {% set has_overview = sections | selectattr("type", "equalto", "overview") | list | length > 0 %}
+
+  {% for s in sections %}
+
+  {# ══════════════════ OVERVIEW ══════════════════ #}
+  {% if s.type == 'overview' %}
+  <div class="sb-workspace-grid">
+
+    {# LEFT: overview content #}
+    <div class="sb-panel" id="{{ s.id }}">
+      <div class="sb-panel-heading">
+        <div>
+          <p class="sb-eyebrow">Overview</p>
+          <h2 class="sb-h2">{{ s.title }}</h2>
+          {% if s.subtitle %}<p class="sb-lede" style="margin-top: 0.35rem;">{{ s.subtitle }}</p>{% endif %}
+        </div>
+      </div>
+
+      {% if s.business_pov %}
+      <div style="margin-bottom: 1.5rem;">
+        <h3 class="sb-h3" style="margin-top: 0;">Why this exists</h3>
+        <div class="sb-prose" style="margin-top: 0.75rem;">{{ s.business_pov | md }}</div>
+      </div>
+      {% endif %}
+
+      {% if s.analogies %}
+      <h3 class="sb-h3" style="margin-top: 1.5rem;">The story</h3>
+      <div style="display: flex; flex-direction: column; gap: 0.75rem; margin-top: 1rem;">
+        {% for a in s.analogies %}
+        <article class="sb-card" style="padding: 1.25rem;">
+          <h4 style="display: flex; align-items: center; gap: 0.5rem; font-weight: 500; margin: 0 0 0.5rem; font-size: 0.925rem; color: var(--sb-text);">
+            <span class="sb-dot"></span>{{ a.title }}
+          </h4>
+          <div class="sb-prose sb-prose--tight" style="margin-top: 0;">{{ a.body | md }}</div>
+        </article>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      {% if s.tech_stack %}
+      <h3 class="sb-h3">Tech stack</h3>
+      <div class="sb-card" style="margin-top: 1rem; overflow: hidden;">
+        <div style="overflow-x: auto;">
+          <table class="sb-table">
+            <thead><tr><th>Component</th><th>Role</th><th>Purpose</th><th></th></tr></thead>
+            <tbody>
+              {% for t in s.tech_stack %}
+              <tr>
+                <td style="white-space: nowrap; font-weight: 500; color: var(--sb-text);">
+                  {{ t.name }}{% if t.version %} <span style="font-family: var(--sb-font-mono); font-size: 0.75rem; color: var(--sb-subtle);">{{ t.version }}</span>{% endif %}
+                </td>
+                <td style="white-space: nowrap;">{% if t.category %}<span class="sb-tag">{{ t.category }}</span>{% endif %}</td>
+                <td>{{ t.purpose or '' }}</td>
+                <td style="white-space: nowrap;">{% if t.docs_url %}<a href="{{ t.docs_url }}" target="_blank" rel="noopener" class="sb-link" style="font-size: 0.8rem;">docs</a>{% endif %}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      {% endif %}
+
+      {% if s.notes %}
+      <h3 class="sb-h3">Worth knowing</h3>
+      <ul class="sb-bullets" style="margin-top: 0.75rem;">
+        {% for note in s.notes %}<li>{{ note | md_inline }}</li>{% endfor %}
+      </ul>
+      {% endif %}
+
+      {{ blocks(s.blocks) }}
+    </div>
+
+    {# RIGHT: study column — first flashcards section preview + agent note #}
+    {% set first_fc = sections | selectattr("type", "equalto", "flashcards") | list | first %}
+    <aside class="sb-study-column">
+      {% if first_fc and first_fc.decks %}
+      <div class="sb-panel" style="flex: 1;">
+        <div class="sb-panel-heading">
+          <div>
+            <p class="sb-eyebrow">Recall</p>
+            <h2 class="sb-h2">{{ first_fc.title }}</h2>
+          </div>
+          <span class="sb-count-label">{{ first_fc.decks | length }} deck{{ 's' if first_fc.decks | length != 1 else '' }}</span>
+        </div>
+
+        {% if first_fc.decks | length > 1 %}
+        <div class="sb-deck-tabs" id="sb-tabs-{{ first_fc.id }}">
+          {% for deck in first_fc.decks %}
+          <button type="button" class="sb-deck-tab {% if loop.first %}active{% endif %}"
+                  data-sb-tab="{{ first_fc.id }}" data-deck-tab="{{ deck.id }}">
+            {{ deck.name }}
+          </button>
+          {% endfor %}
+        </div>
+        {% endif %}
+
+        {% for deck in first_fc.decks %}
+        <div id="sb-deck-display-{{ deck.id }}" {% if not loop.first %}style="display:none"{% endif %}>
+          <button type="button" class="sb-flashcard" id="sb-fc-btn-{{ deck.id }}" aria-label="Show answer">
+            <span class="sb-flashcard-side" id="sb-fc-side-{{ deck.id }}">Question</span>
+            <span class="sb-flashcard-copy" id="sb-fc-copy-{{ deck.id }}">
+              {% if deck.cards %}{{ deck.cards[0].front }}{% endif %}
+            </span>
+            <span class="sb-flashcard-hint">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M3 12a9 9 0 1018 0 9 9 0 00-18 0zm9-4v4l2 2"/></svg>
+              Click to flip
+            </span>
+          </button>
+          <div class="sb-deck-footer">
+            <div style="display: flex; flex-wrap: wrap; gap: 0.3rem;" id="sb-fc-tags-{{ deck.id }}">
+              {% if deck.cards and deck.cards[0].tags %}
+              {% for tag in deck.cards[0].tags %}<span class="sb-tag">{{ tag }}</span>{% endfor %}
+              {% endif %}
+            </div>
+            <div class="sb-deck-controls">
+              <button type="button" class="sb-deck-nav-btn" aria-label="Previous card"
+                      id="sb-fc-prev-{{ deck.id }}" data-sb-fc-prev="{{ deck.id }}">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
+              </button>
+              <button type="button" class="sb-deck-nav-btn" aria-label="Next card"
+                      id="sb-fc-next-{{ deck.id }}" data-sb-fc-next="{{ deck.id }}">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg>
+              </button>
+              {% if deck.id %}
+              <button type="button" class="sb-deck-nav-btn sb-btn--sm"
+                      data-review="{{ deck.id }}" data-mode="all"
+                      style="width:auto;padding:0 0.6rem;font-size:0.75rem;color:var(--sb-accent);border-color:var(--sb-accent);">
+                Review
+              </button>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      <div class="sb-agent-note">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v4m0 4h.01"/></svg>
+        <div>
+          <strong>Built by MCP</strong>
+          <p>Content is generated by Bob's orchestrator via the spongebob MCP server.</p>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  {# ══════════════════ RESOURCES ══════════════════ #}
+  {% elif s.type == 'resources' %}
+  <div class="sb-resources-panel" id="{{ s.id }}">
+    <div class="sb-panel-heading">
+      <div>
+        <p class="sb-eyebrow">Prerequisites</p>
+        <h2 class="sb-h2">{{ s.title }}</h2>
+        {% if s.subtitle %}<p class="sb-lede" style="margin-top: 0.4rem;">{{ s.subtitle }}</p>{% endif %}
+      </div>
+      {% set total_items = s.groups | map(attribute='items') | map('length') | sum %}
+      <span class="sb-count-label">{{ total_items }} resource{{ 's' if total_items != 1 else '' }}</span>
+    </div>
+
+    {% for g in s.groups %}
+    <div style="margin-bottom: 2.5rem;">
+      <p class="sb-resource-group-label">{{ g.label }}</p>
+      {% if g.description %}<p class="sb-lede" style="margin-bottom: 0.75rem;">{{ g.description }}</p>{% endif %}
+      <div class="sb-resource-grid">
+        {% for item in g.items %}
+        {% set vid = item.url | youtube_id %}
+        {% if vid %}
+        <article class="sb-yt-card" style="grid-column: span 2;">
+          <div class="sb-embed">
+            <iframe src="https://www.youtube-nocookie.com/embed/{{ vid }}"
+                    title="{{ item.title }}"
+                    loading="lazy"
+                    referrerpolicy="strict-origin-when-cross-origin"
+                    allowfullscreen
+                    allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture">
+            </iframe>
+          </div>
+          <div class="sb-yt-meta">
+            <div class="sb-resource-meta">
+              <span class="sb-tag">video</span>
+              {% if item.source %}<span class="sb-tag sb-tag--{{ item.source }}">{{ item.source }}</span>{% endif %}
+              {% if item.level %}<span class="sb-tag">{{ item.level }}</span>{% endif %}
+              {% if item.duration %}<span>{{ item.duration }}</span>{% endif %}
+              {% if item.author %}<span>{{ item.author }}</span>{% endif %}
+            </div>
+            <p class="sb-resource-title" style="margin-top: 0.5rem;">{{ item.title }}</p>
+            {% if item.description %}<p class="sb-resource-desc">{{ item.description }}</p>{% endif %}
+            <a href="{{ item.url }}" target="_blank" rel="noopener" class="sb-yt-open">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3"/></svg>
+              Open on YouTube
+            </a>
+          </div>
+        </article>
+        {% else %}
+        <a class="sb-resource-card" href="{{ item.url }}" target="_blank" rel="noopener">
+          <div class="sb-resource-icon">
+            {% set k = item.kind or 'other' %}
+            {% if k in ['blog', 'paper', 'docs', 'book'] %}
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M8 3h6l5 5v13H8a1 1 0 01-1-1V4a1 1 0 011-1zm6 0v5h5M10 13h7M10 17h5"/></svg>
+            {% elif k == 'course' %}
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M12 4l10 5-10 5L2 9l10-5zm6 8v5c0 1.1-2.7 2-6 2s-6-.9-6-2v-5"/></svg>
+            {% elif k == 'repo' %}
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M12 3l9 5-9 5-9-5 9-5zm9 9l-9 5-9-5m18 4l-9 5-9-5"/></svg>
+            {% elif k == 'tool' %}
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M5 5h14a1 1 0 011 1v12a1 1 0 01-1 1H5a1 1 0 01-1-1V6a1 1 0 011-1zm3 4l2.5 3L8 15m5 0h4"/></svg>
+            {% else %}
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M10 13a4 4 0 005.7 0l2.3-2.3a4 4 0 00-5.7-5.7L11 6.3M14 11a4 4 0 00-5.7 0L6 13.3a4 4 0 005.7 5.7L13 17.7"/></svg>
+            {% endif %}
+          </div>
+          <div>
+            <div class="sb-resource-meta">
+              <span class="sb-tag">{{ item.kind or 'link' }}</span>
+              {% if item.source %}<span class="sb-tag sb-tag--{{ item.source }}">{{ item.source }}</span>{% endif %}
+              {% if item.level %}<span class="sb-tag">{{ item.level }}</span>{% endif %}
+              {% if item.duration %}<span>{{ item.duration }}</span>{% endif %}
+              {% if item.author %}<span>{{ item.author }}</span>{% endif %}
+              {% if item.url | domain %}<span style="margin-left: auto; font-family: var(--sb-font-mono); font-size: 0.7rem; color: var(--sb-subtle);">{{ item.url | domain }}</span>{% endif %}
+            </div>
+            <p class="sb-resource-title">{{ item.title }}</p>
+            {% if item.description %}<p class="sb-resource-desc">{{ item.description }}</p>{% endif %}
+          </div>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" class="sb-launch-icon" aria-hidden="true"><path d="M10 13a4 4 0 005.7 0l2.3-2.3a4 4 0 00-5.7-5.7L11 6.3M14 11a4 4 0 00-5.7 0L6 13.3a4 4 0 005.7 5.7L13 17.7"/></svg>
+        </a>
+        {% endif %}
+        {% endfor %}
+      </div>
+    </div>
+    {% endfor %}
+
+    {% if not s.groups %}
+    <p style="font-size: 0.875rem; font-style: italic; color: var(--sb-subtle);">No resources added yet.</p>
+    {% endif %}
+    {{ blocks(s.blocks) }}
+  </div>
+
+  {# ══════════════════ MARKDOWN ══════════════════ #}
+  {% elif s.type == 'markdown' %}
+  <div class="sb-resources-panel" id="{{ s.id }}">
+    <div class="sb-panel-heading">
+      <div>
+        <p class="sb-eyebrow">{% if s.id == 'first-task' %}Guided task{% elif s.id == 'how-it-works' %}How it works{% else %}Guide{% endif %}</p>
+        <h2 class="sb-h2">{{ s.title }}</h2>
+        {% if s.subtitle %}<p class="sb-lede" style="margin-top: 0.4rem;">{{ s.subtitle }}</p>{% endif %}
+      </div>
+    </div>
+    {% if s.body %}
+    <div class="sb-prose">{{ s.body | md }}</div>
+    {% endif %}
+    {{ blocks(s.blocks) }}
+  </div>
+
+  {# ══════════════════ FLASHCARDS ══════════════════ #}
+  {% elif s.type == 'flashcards' and s.decks %}
+  <div class="sb-resources-panel" id="{{ s.id }}">
+    <div class="sb-panel-heading">
+      <div>
+        <p class="sb-eyebrow">Spaced repetition</p>
+        <h2 class="sb-h2">{{ s.title }}</h2>
+        {% if s.subtitle %}<p class="sb-lede" style="margin-top: 0.4rem;">{{ s.subtitle }}</p>{% endif %}
+      </div>
+    </div>
+
+    <div style="display: grid; gap: 0.75rem; grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));" data-deck-grid>
+      {% for deck in s.decks %}
+      <article class="sb-card sb-card--hover" style="padding: 1.25rem;" data-deck-card="{{ deck.id }}">
+        <div style="display: flex; align-items: flex-start; gap: 1rem;">
+          <div class="sb-ring" data-deck-ring="{{ deck.id }}" style="--sb-ring-pct: 0; display: grid; place-items: center;">
+            <span data-deck-pct style="font-size: 0.65rem; font-family: var(--sb-font-mono);">0%</span>
+          </div>
+          <div style="min-width: 0; flex: 1;">
+            <h3 style="font-weight: 500; margin: 0 0 0.25rem; color: var(--sb-text); font-size: 0.95rem;">{{ deck.name }}</h3>
+            {% if deck.description %}
+            <p style="margin-top: 0.35rem; font-size: 0.8rem; color: var(--sb-muted); line-height: 1.45;">{{ deck.description }}</p>
+            {% endif %}
+            <p style="margin-top: 0.5rem; font-size: 0.75rem; color: var(--sb-subtle);">
+              {{ deck.cards | length }} card{{ 's' if deck.cards | length != 1 else '' }} ·
+              <span data-deck-due>–</span> due now
+            </p>
+            <div style="margin-top: 1rem; display: flex; flex-wrap: wrap; gap: 0.5rem;">
+              <button type="button" class="sb-btn sb-btn--sm sb-btn--primary" data-review="{{ deck.id }}" data-mode="due">Review due</button>
+              <button type="button" class="sb-btn sb-btn--sm" data-review="{{ deck.id }}" data-mode="all">Study all</button>
+              <button type="button" class="sb-btn sb-btn--sm sb-btn--ghost" data-reset-deck="{{ deck.id }}">Reset</button>
+            </div>
+          </div>
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+
+    <details class="sb-card" style="margin-top: 0.75rem; padding: 1.25rem;">
+      <summary style="cursor: pointer; font-size: 0.875rem; font-weight: 500; color: var(--sb-muted);">
+        All cards (browse without reviewing)
+      </summary>
+      <div style="margin-top: 1.25rem; display: flex; flex-direction: column; gap: 1.5rem;">
+        {% for deck in s.decks %}
+        <div>
+          <h4 class="sb-h4" style="margin-top: 0;">{{ deck.name }}</h4>
+          <ul style="margin: 0.75rem 0 0; padding: 0; list-style: none; border-top: 1px solid var(--sb-border);">
+            {% for card in deck.cards %}
+            <li style="padding: 0.75rem 0; border-bottom: 1px solid var(--sb-border);">
+              <p style="font-size: 0.875rem; font-weight: 500; color: var(--sb-text); margin: 0;">{{ card.front }}</p>
+              <p style="font-size: 0.875rem; color: var(--sb-muted); margin: 0.35rem 0 0;">{{ card.back }}</p>
+            </li>
+            {% endfor %}
+          </ul>
+        </div>
+        {% endfor %}
+      </div>
+    </details>
+
+    {# SRS review overlay — one per flashcards section #}
+    <div class="sb-overlay" data-review-overlay hidden>
+      <div class="sb-review" role="dialog" aria-modal="true" aria-label="Flashcard review">
+        <header class="sb-review-head">
+          <span style="font-size: 0.875rem; font-weight: 500;" data-review-title></span>
+          <span style="margin-left: auto; font-family: var(--sb-font-mono); font-size: 0.75rem; color: var(--sb-subtle);" data-review-counter></span>
+          <button type="button" class="sb-icon-btn" data-review-close aria-label="Close review">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+          </button>
+        </header>
+        <div class="sb-flip" data-flip>
+          <div class="sb-flip-inner">
+            <div class="sb-face sb-face--front">
+              <div class="sb-prose sb-prose--center" data-card-front></div>
+              <p class="sb-hint" data-card-hint hidden></p>
+            </div>
+            <div class="sb-face sb-face--back">
+              <div class="sb-prose sb-prose--center" data-card-back></div>
+              <div style="margin-top: 1rem; width: 100%;" data-card-code hidden></div>
+            </div>
+          </div>
+        </div>
+        <footer class="sb-review-foot">
+          <button type="button" class="sb-btn sb-btn--primary" style="width: 100%;" data-flip-btn>
+            Show answer <kbd class="sb-kbd">space</kbd>
+          </button>
+          <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem;" data-grades hidden>
+            <button type="button" class="sb-grade sb-grade--again" data-grade="again">Again<kbd class="sb-kbd">1</kbd></button>
+            <button type="button" class="sb-grade sb-grade--hard"  data-grade="hard">Hard<kbd class="sb-kbd">2</kbd></button>
+            <button type="button" class="sb-grade sb-grade--good"  data-grade="good">Good<kbd class="sb-kbd">3</kbd></button>
+            <button type="button" class="sb-grade sb-grade--easy"  data-grade="easy">Easy<kbd class="sb-kbd">4</kbd></button>
+          </div>
+        </footer>
+        <div class="sb-review-done" data-review-done hidden>
+          <p style="font-size: 1.1rem; font-weight: 500; color: var(--sb-text);">Deck complete</p>
+          <p style="margin-top: 0.5rem; font-size: 0.875rem; color: var(--sb-muted);" data-review-summary></p>
+          <button type="button" class="sb-btn sb-btn--primary" style="margin-top: 1.25rem;" data-review-close>Done</button>
+        </div>
+      </div>
+    </div>
+
+    <script type="application/json" data-decks>{{ deck_data(s) }}</script>
+  </div>
+
+  {# ══════════════════ QUIZ ══════════════════ #}
+  {% elif s.type == 'quiz' %}
+  <div class="sb-resources-panel sb-quiz-section" id="{{ s.id }}">
+    <div class="sb-panel-heading">
+      <div>
+        <p class="sb-eyebrow">Test yourself</p>
+        <h2 class="sb-h2">{{ s.title }}</h2>
+        {% if s.subtitle %}<p class="sb-lede" style="margin-top: 0.4rem;">{{ s.subtitle }}</p>{% endif %}
+      </div>
+    </div>
+
+    {% if s.quizzes %}
+    <div style="display: flex; flex-direction: column; gap: 2rem;" data-quizzes>
+      {% for quiz in s.quizzes %}
+      <section class="sb-card" style="padding: 1.5rem;" data-quiz="{{ quiz.id }}">
+        <header style="display: flex; flex-wrap: wrap; align-items: flex-start; gap: 1rem;">
+          <div style="min-width: 0;">
+            <h3 style="font-size: 1.2rem; font-weight: 500; margin: 0; color: var(--sb-text);">{{ quiz.name }}</h3>
+            {% if quiz.description %}
+            <p style="margin-top: 0.5rem; font-size: 0.875rem; color: var(--sb-muted);">{{ quiz.description }}</p>
+            {% endif %}
+          </div>
+          <p style="margin-left: auto; text-align: right; font-size: 0.75rem; color: var(--sb-subtle);">
+            {{ quiz.questions | length }} question{{ 's' if quiz.questions | length != 1 else '' }}{% if quiz.pass_score %}<br>pass at {{ quiz.pass_score }}%{% endif %}
+            <br><span data-quiz-best>–</span>
+          </p>
+        </header>
+        <div style="margin-top: 1.5rem; display: flex; flex-direction: column; gap: 1.5rem;" data-quiz-body></div>
+        <div style="margin-top: 1.5rem; display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem; border-top: 1px solid var(--sb-border); padding-top: 1.25rem;">
+          <button type="button" class="sb-btn sb-btn--primary" data-quiz-submit>Check answers</button>
+          <button type="button" class="sb-btn" data-quiz-retry hidden>Try again</button>
+          <p style="font-size: 0.875rem; font-weight: 500;" data-quiz-result></p>
+        </div>
+      </section>
+      {% endfor %}
+    </div>
+    <script type="application/json" data-quiz-data>{{ quiz_data(s) }}</script>
+    {% else %}
+    <p style="font-size: 0.875rem; font-style: italic; color: var(--sb-subtle);">No quizzes yet.</p>
+    {% endif %}
+    {{ blocks(s.blocks) }}
+  </div>
+
+  {# ══════════════════ CUSTOM — danger/critical warnings only ══════════════════ #}
+  {% elif s.type == 'custom' %}
+  <div class="sb-custom-danger" id="{{ s.id }}" role="alert">
+    <div class="sb-custom-danger-head">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      <span>{{ s.title }}</span>
+    </div>
+    {% if s.subtitle %}<p class="sb-custom-danger-sub">{{ s.subtitle }}</p>{% endif %}
+    {{ blocks(s.blocks) }}
+  </div>
+
+  {% endif %}
+  {% endfor %}
+
+  {# ── Inline sections (page=false, not already rendered above) ── #}
+  {% for s in inline_sections %}
+  <div class="sb-resources-panel" id="{{ s.id }}" style="margin-top: 1px;">
+    <h2 class="sb-h2" style="margin-bottom: 1rem;">{{ s.title }}</h2>
+    {% if s.type == 'markdown' %}<div class="sb-prose">{{ s.body | md }}</div>{% endif %}
+    {{ blocks(s.blocks) }}
+  </div>
+  {% endfor %}
+
+</div>{# /sb-workspace #}
+
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ assets }}/srs.js"></script>
+<script src="{{ assets }}/flashcards.js"></script>
+<script src="{{ assets }}/quiz.js"></script>
+<script>
+/* Inline deck browser — prev/next navigation per deck without full SRS overlay */
+(function () {
+  'use strict';
+
+  /* Build card data from rendered server-side JSON (reuse the same blob) */
+  var blobEl = document.querySelector('script[data-decks]');
+  if (!blobEl) return;
+
+  var decks = JSON.parse(blobEl.textContent || '[]');
+  var deckMap = {};
+  decks.forEach(function (d) { deckMap[d.id] = d; });
+
+  /* state per deck */
+  var state = {};
+  decks.forEach(function (d) { state[d.id] = { index: 0, flipped: false }; });
+
+  function render(deckId) {
+    var deck = deckMap[deckId];
+    if (!deck || !deck.cards.length) return;
+
+    var s = state[deckId];
+    var card = deck.cards[s.index];
+
+    var btn = document.getElementById('sb-fc-btn-' + deckId);
+    var sideEl = document.getElementById('sb-fc-side-' + deckId);
+    var copyEl = document.getElementById('sb-fc-copy-' + deckId);
+    var tagsEl = document.getElementById('sb-fc-tags-' + deckId);
+    if (!btn || !sideEl || !copyEl) return;
+
+    if (s.flipped) {
+      btn.classList.add('sb-flashcard--answer');
+      sideEl.textContent = 'Answer';
+      copyEl.innerHTML = card.back;
+    } else {
+      btn.classList.remove('sb-flashcard--answer');
+      sideEl.textContent = 'Question';
+      copyEl.innerHTML = card.front;
+    }
+
+    if (tagsEl) {
+      tagsEl.innerHTML = (card.tags || []).map(function (t) {
+        return '<span class="sb-tag">' + t + '</span>';
+      }).join('');
+    }
+  }
+
+  /* flip on click */
+  decks.forEach(function (deck) {
+    var btn = document.getElementById('sb-fc-btn-' + deck.id);
+    if (!btn) return;
+    btn.addEventListener('click', function () {
+      state[deck.id].flipped = !state[deck.id].flipped;
+      render(deck.id);
+    });
+  });
+
+  /* prev */
+  document.querySelectorAll('[data-sb-fc-prev]').forEach(function (el) {
+    el.addEventListener('click', function () {
+      var id = el.dataset.sbFcPrev;
+      var deck = deckMap[id];
+      if (!deck) return;
+      state[id].index = (state[id].index - 1 + deck.cards.length) % deck.cards.length;
+      state[id].flipped = false;
+      render(id);
+    });
+  });
+
+  /* next */
+  document.querySelectorAll('[data-sb-fc-next]').forEach(function (el) {
+    el.addEventListener('click', function () {
+      var id = el.dataset.sbFcNext;
+      var deck = deckMap[id];
+      if (!deck) return;
+      state[id].index = (state[id].index + 1) % deck.cards.length;
+      state[id].flipped = false;
+      render(id);
+    });
+  });
+
+  /* deck tabs */
+  document.querySelectorAll('[data-sb-tab]').forEach(function (tab) {
+    tab.addEventListener('click', function () {
+      var sectionId = tab.dataset.sbTab;
+      var deckId = tab.dataset.deckTab;
+      /* deactivate all tabs in this section */
+      document.querySelectorAll('[data-sb-tab="' + sectionId + '"]').forEach(function (t) {
+        t.classList.remove('active');
+      });
+      tab.classList.add('active');
+      /* hide all deck displays, show chosen */
+      var allDisplays = document.querySelectorAll('[id^="sb-deck-display-"]');
+      allDisplays.forEach(function (el) {
+        /* only toggle displays belonging to decks in this section */
+        decks.filter(function (d) {
+          return document.querySelectorAll('[data-sb-tab="' + sectionId + '"][data-deck-tab="' + d.id + '"]').length > 0;
+        }).forEach(function (d) {
+          var displayEl = document.getElementById('sb-deck-display-' + d.id);
+          if (displayEl) displayEl.style.display = d.id === deckId ? '' : 'none';
+        });
+      });
+    });
+  });
+
+  /* initial render */
+  decks.forEach(function (d) { render(d.id); });
+})();
+</script>
+{% endblock %}

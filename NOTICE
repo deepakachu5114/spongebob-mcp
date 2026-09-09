@@ -1,0 +1,20 @@
+spongebob
+Copyright 2026
+
+------------------------------------------------------------------------------
+Acknowledgement: StudyCraft
+------------------------------------------------------------------------------
+
+The flashcard-deck, quiz, and spaced-repetition features of the sites rendered
+by spongebob are conceptually inspired by StudyCraft
+(https://github.com/rodmarkun/StudyCraft), which is licensed under the
+Apache License, Version 2.0.
+
+StudyCraft is a Rust + Tauri + Svelte desktop application. No StudyCraft source
+code is copied, vendored, linked, or otherwise distributed as part of this
+project. spongebob's implementation of decks, tests, and the SM-2 review
+scheduler is an independent, from-scratch implementation in Python and vanilla
+JavaScript.
+
+This acknowledgement is offered as attribution to the StudyCraft authors for
+the design ideas that informed this project.

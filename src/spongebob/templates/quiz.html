@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% from "partials/blocks.html" import blocks, section_header, extras %}
+
+{% block content %}
+{{ section_header(section, default_icons) }}
+
+{% if section.quizzes %}
+<div class="space-y-10" data-quizzes>
+  {% for quiz in section.quizzes %}
+  <section class="sb-card p-6" data-quiz="{{ quiz.id }}">
+    <header class="flex flex-wrap items-start gap-3">
+      <div class="min-w-0">
+        <h2 class="text-xl font-semibold tracking-tight text-slate-900 dark:text-white">{{ quiz.name }}</h2>
+        {% if quiz.description %}
+        <p class="mt-1.5 text-sm text-slate-600 dark:text-slate-400">{{ quiz.description }}</p>
+        {% endif %}
+      </div>
+      <p class="ml-auto text-right text-xs text-slate-500 dark:text-slate-500">
+        {{ quiz.questions | length }} questions{% if quiz.pass_score %}<br>pass at {{ quiz.pass_score }}%{% endif %}
+        <br><span data-quiz-best>–</span>
+      </p>
+    </header>
+
+    <div class="mt-6 space-y-6" data-quiz-body></div>
+
+    <div class="mt-6 flex flex-wrap items-center gap-3 border-t border-slate-200/70 pt-5 dark:border-white/5">
+      <button type="button" class="sb-btn sb-btn--primary" data-quiz-submit>Check answers</button>
+      <button type="button" class="sb-btn" data-quiz-retry hidden>Try again</button>
+      <p class="text-sm font-medium" data-quiz-result></p>
+    </div>
+  </section>
+  {% endfor %}
+</div>
+
+<script type="application/json" data-quiz-data>{{ quiz_data(section) }}</script>
+{% else %}
+<p class="text-sm italic text-slate-500">No quizzes yet.</p>
+{% endif %}
+
+{{ blocks(section.blocks) }}
+{{ extras(section) }}
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ assets }}/quiz.js"></script>
+{% endblock %}

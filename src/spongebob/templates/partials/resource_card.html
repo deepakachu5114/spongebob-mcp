@@ -1,0 +1,62 @@
+{% from "partials/icons.html" import icon %}
+
+{% macro kind_icon(kind) -%}
+{{ icon({'youtube':'video','blog':'document','course':'graduation','docs':'book',
+         'book':'book','paper':'document','repo':'layers','tool':'terminal'}.get(kind, 'link'), "w-4 h-4") }}
+{%- endmacro %}
+
+{#- YouTube items become privacy-mode embeds; anything else becomes a link card. -#}
+{% macro video_card(item) %}
+{% set vid = item.url | youtube_id %}
+<article class="sb-card overflow-hidden">
+  {% if vid %}
+  <div class="sb-embed">
+    <iframe src="https://www.youtube-nocookie.com/embed/{{ vid }}" title="{{ item.title }}"
+            loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen
+            allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"></iframe>
+  </div>
+  {% endif %}
+  <div class="p-4">
+    <h4 class="text-[0.95rem] font-semibold leading-snug text-slate-900 dark:text-white">
+      <a href="{{ item.url }}" target="_blank" rel="noopener" class="hover:underline">{{ item.title }}</a>
+    </h4>
+    {% if item.description %}
+    <p class="mt-1.5 text-sm leading-relaxed text-slate-600 dark:text-slate-400">{{ item.description }}</p>
+    {% endif %}
+    {{ meta_row(item) }}
+  </div>
+</article>
+{% endmacro %}
+
+{% macro link_card(item) %}
+<article class="sb-card p-4">
+  <div class="flex items-start gap-3">
+    <span class="sb-kind-chip">{{ kind_icon(item.kind) }}</span>
+    <div class="min-w-0 flex-1">
+      <h4 class="text-[0.95rem] font-semibold leading-snug text-slate-900 dark:text-white">
+        <a href="{{ item.url }}" target="_blank" rel="noopener" class="hover:underline">{{ item.title }}</a>
+      </h4>
+      {% if item.description %}
+      <p class="mt-1.5 text-sm leading-relaxed text-slate-600 dark:text-slate-400">{{ item.description }}</p>
+      {% endif %}
+      {{ meta_row(item) }}
+    </div>
+  </div>
+</article>
+{% endmacro %}
+
+{% macro meta_row(item) %}
+{% set host = item.url | domain %}
+<div class="mt-3 flex flex-wrap items-center gap-1.5 text-[0.7rem]">
+  {% if item.source %}<span class="sb-tag sb-tag--{{ item.source }}">{{ item.source }}</span>{% endif %}
+  {% if item.level %}<span class="sb-tag">{{ item.level }}</span>{% endif %}
+  {% if item.duration %}<span class="sb-tag">{{ item.duration }}</span>{% endif %}
+  {% if item.author %}<span class="sb-tag">{{ item.author }}</span>{% endif %}
+  {% for tag in item.tags %}<span class="sb-tag">{{ tag }}</span>{% endfor %}
+  {% if host %}<span class="ml-auto font-mono text-slate-400 dark:text-slate-600">{{ host }}</span>{% endif %}
+</div>
+{% endmacro %}
+
+{% macro resource(item) %}
+{% if item.kind == 'youtube' and (item.url | youtube_id) %}{{ video_card(item) }}{% else %}{{ link_card(item) }}{% endif %}
+{% endmacro %}

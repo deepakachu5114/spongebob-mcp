@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% from "partials/blocks.html" import blocks, section_header, extras %}
+
+{% block content %}
+{{ section_header(section, default_icons) }}
+{% if section.blocks %}
+<div class="space-y-6">
+  {% from "partials/blocks.html" import block %}
+  {% for b in section.blocks %}{{ block(b) }}{% endfor %}
+</div>
+{% else %}
+<p class="text-sm italic text-slate-500">This section has no content blocks yet.</p>
+{% endif %}
+{{ extras(section) }}
+{% endblock %}

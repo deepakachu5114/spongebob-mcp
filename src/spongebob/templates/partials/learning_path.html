@@ -1,0 +1,107 @@
+{#-
+  YouLearning-style serpentine timeline — pure CSS.
+
+  Layout per row:
+    .sb-tl-row                  (position: relative)
+      .sb-tl-nodes              (flex row; packed left, or right when reversed)
+        .sb-tl-node-col × N     (::before = line from this circle to the next)
+      .sb-tl-uturn--right/left  (absolute; straddles from this row's line to next row's line)
+
+  The circle is 2rem (32px) tall.  Its centre is at top: 1rem inside .sb-tl-nodes.
+  The horizontal line pseudo-element runs at top: 1rem.
+  The U-turn div is anchored so its top border aligns with that 1rem line and its
+  bottom border aligns with the next row's 1rem line.
+
+  States (persisted in localStorage, cycled on click):
+    todo   → empty circle
+    active → left half green (#24a148)
+    done   → full green + white checkmark
+-#}
+{% macro learning_path(steps, per_row=4) %}
+{% if steps %}
+{% set rows = steps | batch(per_row) | list %}
+<div class="sb-timeline{% if rows | length == 1 %} is-single-row{% endif %}"
+     id="sb-timeline"
+     style="--tl-per-row: {{ per_row }}"
+     aria-label="Learning path">
+
+  {% for row in rows %}
+  {% set is_last_row = loop.last %}
+  {% set reversed_row = loop.index is even %}
+  {% set ordered = (row | reverse | list) if reversed_row else row %}
+
+  <div class="sb-tl-row{% if not is_last_row %}{% if reversed_row %} has-uturn-left{% else %} has-uturn-right{% endif %}{% endif %}"
+       data-reversed="{{ 'true' if reversed_row else 'false' }}">
+
+    <div class="sb-tl-nodes">
+      {% for step in ordered %}
+      <div class="sb-tl-node-col">
+        <a class="sb-tl-node"
+           data-step="{{ step.number }}"
+           {% if step.href %}href="{{ step.href }}"{% endif %}
+           aria-label="{{ step.title }}">
+          <svg class="sb-tl-circle" viewBox="0 0 32 32" aria-hidden="true">
+            <circle cx="16" cy="16" r="13" class="sb-tl-bg"/>
+            <circle cx="16" cy="16" r="13" class="sb-tl-fill" style="display:none"/>
+            <polyline class="sb-tl-check" points="9,16 14,21 23,11" style="display:none"/>
+          </svg>
+          <div class="sb-tl-label">
+            <span class="sb-tl-num">{{ step.number }}</span>
+            <span class="sb-tl-title">{{ step.title }}</span>
+            {% if step.summary %}<span class="sb-tl-summary">{{ step.summary }}</span>{% endif %}
+            {% if step.est_minutes %}<span class="sb-tl-time">{{ step.est_minutes }} min</span>{% endif %}
+          </div>
+        </a>
+      </div>
+      {% endfor %}
+    </div>
+
+  </div>
+  {% endfor %}
+
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  var site = document.body.dataset.site || 'site';
+  var KEY  = 'spongebob:' + site + ':path:';
+
+  function getState(n)       { try { return localStorage.getItem(KEY + n) || 'todo'; } catch(e) { return 'todo'; } }
+  function saveState(n, val) { try { localStorage.setItem(KEY + n, val); } catch(e) {} }
+
+  function applyState(nodeEl, state) {
+    var circle = nodeEl.querySelector('.sb-tl-circle');
+    var fill   = nodeEl.querySelector('.sb-tl-fill');
+    var check  = nodeEl.querySelector('.sb-tl-check');
+    circle.setAttribute('data-state', state);
+    fill.style.display  = (state === 'todo') ? 'none' : '';
+    check.style.display = (state === 'done') ? ''     : 'none';
+  }
+
+  var tl = document.getElementById('sb-timeline');
+  if (!tl) return;
+  var nodes = tl.querySelectorAll('.sb-tl-node');
+
+  nodes.forEach(function (n) { applyState(n, getState(n.dataset.step)); });
+
+  nodes.forEach(function (node) {
+    node.addEventListener('click', function (e) {
+      e.preventDefault();
+      var n   = node.dataset.step;
+      var cur = getState(n);
+      var nxt = cur === 'todo' ? 'active' : cur === 'active' ? 'done' : 'todo';
+      saveState(n, nxt);
+      applyState(node, nxt);
+      var href = node.getAttribute('href');
+      if (href && href.startsWith('#')) {
+        var target = document.getElementById(href.slice(1));
+        if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    });
+  });
+})();
+</script>
+{% endif %}
+{% endmacro %}

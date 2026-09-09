@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% from "partials/icons.html" import icon %}
+{% from "partials/resource_card.html" import resource, kind_icon %}
+{% from "partials/blocks.html" import blocks, section_header, extras %}
+
+{% block content %}
+{{ section_header(section, default_icons) }}
+
+{% if section.groups %}
+<nav class="mb-10 flex flex-wrap gap-2">
+  {% for g in section.groups %}
+  <a href="#{{ loop.index }}-{{ g.label | lower | replace(' ', '-') }}" class="sb-btn sb-btn--sm">
+    {{ kind_icon(g.kind) }} {{ g.label }}
+    <span class="sb-count">{{ g.items | length }}</span>
+  </a>
+  {% endfor %}
+</nav>
+{% endif %}
+
+{% for g in section.groups %}
+<section class="sb-section" id="{{ loop.index }}-{{ g.label | lower | replace(' ', '-') }}">
+  <h2 class="sb-h2 {% if loop.first %}!mt-0{% endif %}">{{ g.label }}</h2>
+  {% if g.description %}<p class="sb-lede">{{ g.description }}</p>{% endif %}
+  <div class="mt-6 grid gap-3 {% if g.kind == 'youtube' %}sm:grid-cols-2{% else %}sm:grid-cols-2{% endif %}">
+    {% for item in g.items %}{{ resource(item) }}{% endfor %}
+  </div>
+  {% if not g.items %}
+  <p class="mt-4 text-sm italic text-slate-500">Nothing here yet.</p>
+  {% endif %}
+</section>
+{% endfor %}
+
+{% if not section.groups %}
+<p class="text-sm italic text-slate-500">No resources have been added to this section yet.</p>
+{% endif %}
+
+{{ blocks(section.blocks) }}
+{{ extras(section) }}
+{% endblock %}
